@@ -1,11 +1,17 @@
 
-Android BasicMultitouch Sample
-===================================
+Android BasicMultitouch Sample - for Scala
+==========================================
 
 Sample demonstrates the use of [MotionEvent][1] properties to keep track of
 individual touches across multiple touch events.
 
+This repository provides the same functionality as found in the official
+Google Samples [BasicMultiTouch][2], but all Java code was ported to 
+Scala.
+
 [1]: http://developer.android.com/reference/android/view/MotionEvent.html
+[2]: https://github.com/googlesamples/android-BasicMultitouch
+
 
 Introduction
 ------------
