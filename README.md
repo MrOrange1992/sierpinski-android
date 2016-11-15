@@ -7,10 +7,16 @@ individual touches across multiple touch events.
 
 This repository provides the same functionality as found in the official
 Google Samples [BasicMultiTouch][2], but all Java code was ported to 
-Scala.
+Scala. 
+
+The build still relies on gradle, using a special scala android
+plugin which allows to use the same workflow in Android Studio as for a
+normal Java project. For more serious Android Scala Development, I would 
+recommend to try out sbt, as described on [Scala on Android][3].
 
 [1]: http://developer.android.com/reference/android/view/MotionEvent.html
 [2]: https://github.com/googlesamples/android-BasicMultitouch
+[3]: http://scala-android.org
 
 
 Introduction
