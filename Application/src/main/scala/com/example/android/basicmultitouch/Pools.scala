@@ -17,60 +17,47 @@ package com.example.android.basicmultitouch
 
 import scala.reflect.ClassTag
 
-object Pools {
 
-  trait Pool[T] {
+trait Pool[T] {
 
-    def acquire: T
+  def acquire: T
 
-    def release(instance: T): Boolean
+  def release(instance: T): Boolean
+}
+
+
+class SimplePool[T: ClassTag](val maxPoolSize: Int) extends Pool[T] {
+  if (maxPoolSize <= 0) {
+    throw new IllegalArgumentException("The max pool size must be > 0")
   }
 
-  class SimplePool[T:ClassTag](val maxPoolSize: Int) extends Pool[T] {
-    if (maxPoolSize <= 0) {
-      throw new IllegalArgumentException("The max pool size must be > 0")
-    }
+  private val mPool: Array[T] = Array.fill[T](maxPoolSize)(null.asInstanceOf[T])
+  private var mPoolSize: Int = 0
 
-    private val mPool: Array[T] = Array.fill[T](maxPoolSize)(null.asInstanceOf[T])
-    private var mPoolSize: Int = 0
-
-    @SuppressWarnings(Array("unchecked"))
-    def acquire: T = {
-      if (mPoolSize > 0) {
-        val lastPooledIndex: Int = mPoolSize - 1
-        val instance: T = mPool(lastPooledIndex)
-        mPool(lastPooledIndex) = null.asInstanceOf[T]
-        mPoolSize -= 1
-        instance
-      } else null.asInstanceOf[T]
-    }
-
-    def release(instance: T): Boolean = {
-      if (isInPool(instance)) {
-        throw new IllegalStateException("Already in the pool!")
-      }
-      if (mPoolSize < mPool.length) {
-        mPool(mPoolSize) = instance
-        mPoolSize += 1
-        true
-      } else false
-    }
-
-    private def isInPool(instance: T): Boolean = mPool.contains(instance)
-
+  @SuppressWarnings(Array("unchecked"))
+  def acquire: T = {
+    if (mPoolSize > 0) {
+      val lastPooledIndex: Int = mPoolSize - 1
+      val instance: T = mPool(lastPooledIndex)
+      mPool(lastPooledIndex) = null.asInstanceOf[T]
+      mPoolSize -= 1
+      instance
+    } else null.asInstanceOf[T]
   }
 
-  class SynchronizedPool[T:ClassTag](maxPoolSize: Int) extends SimplePool[T](maxPoolSize) {
-    final private val mLock: Object = new Object
-
-    override def acquire: T = mLock.synchronized {
-      super.acquire
+  def release(instance: T): Boolean = {
+    if (isInPool(instance)) {
+      throw new IllegalStateException("Already in the pool!")
     }
-
-    override def release(element: T): Boolean = mLock.synchronized {
-      super.release(element)
-    }
+    if (mPoolSize < mPool.length) {
+      mPool(mPoolSize) = instance
+      mPoolSize += 1
+      true
+    } else false
   }
+
+  private def isInPool(instance: T): Boolean = mPool.contains(instance)
 
 }
+
 

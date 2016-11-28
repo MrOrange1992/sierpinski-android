@@ -26,67 +26,69 @@ import android.view.MotionEvent
 import android.view.View
 
 
+object TouchHistory {
+  val HISTORY_COUNT: Int = 20
+  private val MAX_POOL_SIZE: Int = 100
+  private val sPool: SimplePool[TouchHistory] = new SimplePool[TouchHistory](MAX_POOL_SIZE)
+
+  def obtain(x: Float, y: Float, pressure: Float): TouchHistory = {
+    val data: TouchHistory = Option(sPool.acquire).getOrElse(new TouchHistory)
+    data.setTouch(x, y, pressure)
+    data
+  }
+}
+
+class TouchHistory {
+  var x: Float = 0.0f
+  var y: Float = 0.0f
+  var pressure: Float = 0f
+
+  var label: String = null
+  var historyIndex: Int = 0
+  var historyCount: Int = 0
+  var history: Array[PointF] = Array.fill(TouchHistory.HISTORY_COUNT)(new PointF)
+
+  def setTouch(x: Float, y: Float, pressure: Float) {
+    this.x = x
+    this.y = y
+    this.pressure = pressure
+  }
+
+  def recycle(): Unit = {
+    this.historyIndex = 0
+    this.historyCount = 0
+    TouchHistory.sPool.release(this)
+  }
+
+  def addHistory(x: Float, y: Float) {
+    val p: PointF = history(historyIndex)
+    p.x = x
+    p.y = y
+    historyIndex = (historyIndex + 1) % history.length
+    if (historyCount < TouchHistory.HISTORY_COUNT) {
+      historyCount += 1
+    }
+  }
+}
+
+
 object TouchDisplayView {
-
-  private[basicmultitouch] object TouchHistory {
-    val HISTORY_COUNT: Int = 20
-    private val MAX_POOL_SIZE: Int = 10
-    private val sPool: Pools.SimplePool[TouchHistory] = new Pools.SimplePool[TouchHistory](MAX_POOL_SIZE)
-
-    def obtain(x: Float, y: Float, pressure: Float): TouchHistory = {
-      var data: TouchHistory = Option(sPool.acquire).getOrElse(new TouchHistory)
-      data.setTouch(x, y, pressure)
-      data
-    }
-  }
-
-  class TouchHistory {
-    var x: Float = 0.0f
-    var y: Float = 0.0f
-    var pressure: Float = 0f
-
-    var label: String = null
-    var historyIndex: Int = 0
-    var historyCount: Int = 0
-    var history: Array[PointF] = Array.fill(TouchHistory.HISTORY_COUNT)(new PointF)
-
-    def setTouch(x: Float, y: Float, pressure: Float) {
-      this.x = x
-      this.y = y
-      this.pressure = pressure
-    }
-
-    def recycle(): Unit = {
-      this.historyIndex = 0
-      this.historyCount = 0
-      TouchHistory.sPool.release(this)
-    }
-
-    def addHistory(x: Float, y: Float) {
-      val p: PointF = history(historyIndex)
-      p.x = x
-      p.y = y
-      historyIndex = (historyIndex + 1) % history.length
-      if (historyCount < TouchHistory.HISTORY_COUNT) {
-        historyCount += 1
-      }
-    }
-  }
 
   private val CIRCLE_RADIUS_DP: Float = 75f
   private val CIRCLE_HISTORICAL_RADIUS_DP: Float = 7f
   private val BACKGROUND_ACTIVE: Int = Color.WHITE
   private val INACTIVE_BORDER_DP: Float = 15f
-  private val INACTIVE_BORDER_COLOR: Int = 0xFFffd060
+  private val INACTIVE_BORDER_COLOR: Int = 0xFF00FF00
+
+  val Colors: Array[Int] = Array(0xFF33B5E5, 0xFFAA66CC, 0xFF99CC00, 0xFFFFBB33, 0xFFFF4444, 0xFF0099CC, 0xFF9933CC, 0xFF669900, 0xFFFF8800, 0xFFCC0000)
+
 }
 
 case class TouchDisplayView(context: Context,
                             attrs: AttributeSet) extends View(context, attrs) {
 
-  import TouchDisplayView.TouchHistory
 
-  val density: Float = getResources.getDisplayMetrics.density
-
+  private val density: Float = getResources.getDisplayMetrics.density
   private val mCircleRadius = TouchDisplayView.CIRCLE_RADIUS_DP * density
   private val mCircleHistoricalRadius: Float = TouchDisplayView.CIRCLE_HISTORICAL_RADIUS_DP * density
 
@@ -112,8 +114,6 @@ case class TouchDisplayView(context: Context,
     p.setStyle(Paint.Style.STROKE)
     p
   }
-
-  val COLORS: Array[Int] = Array(0xFF33B5E5, 0xFFAA66CC, 0xFF99CC00, 0xFFFFBB33, 0xFFFF4444, 0xFF0099CC, 0xFF9933CC, 0xFF669900, 0xFFFF8800, 0xFFCC0000)
 
   private val mTouches: SparseArray[TouchHistory] = new SparseArray[TouchHistory](10)
   private var mHasTouch: Boolean = false
@@ -160,9 +160,9 @@ case class TouchDisplayView(context: Context,
 
   override protected def onDraw(canvas: Canvas) {
     super.onDraw(canvas)
-    println("draw event")
+
     def drawCircle(canvas: Canvas, id: Int, data: TouchHistory) {
-      val color: Int = COLORS(id % COLORS.length)
+      val color: Int = TouchDisplayView.Colors(id % TouchDisplayView.Colors.length)
       mCirclePaint.setColor(color)
       val pressure: Float = Math.min(data.pressure, 1f)
       val radius: Float = pressure * mCircleRadius
@@ -174,7 +174,6 @@ case class TouchDisplayView(context: Context,
       }
       canvas.drawText(data.label, data.x + radius, data.y - radius, mTextPaint)
     }
-
 
     if (mHasTouch) {
       canvas.drawColor(TouchDisplayView.BACKGROUND_ACTIVE)
